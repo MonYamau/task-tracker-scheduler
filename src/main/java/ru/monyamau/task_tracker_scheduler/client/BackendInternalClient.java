@@ -14,7 +14,7 @@ import java.util.List;
         url = "${backend-service.url}"
 )
 public interface BackendInternalClient {
-    @GetMapping("/period-tasks")
+    @GetMapping("/internal/period-tasks")
     List<FullTaskDto> findPeriodTasksBy(
             @RequestParam("from")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
