@@ -15,7 +15,7 @@ public class LetterSendingProducer {
     private final KafkaTemplate<String, PersonalReportLetterDto> kafkaTemplate;
     private final String topic;
 
-    public LetterSendingProducer(KafkaTemplate<String, PersonalReportLetterDto> kafkaTemplate, @Value("${kafka.topics.sender}") String topic) {
+    public LetterSendingProducer(KafkaTemplate<String, PersonalReportLetterDto> kafkaTemplate, @Value("${kafka.topics.mailing}") String topic) {
         this.kafkaTemplate = kafkaTemplate;
         this.topic = topic;
     }
