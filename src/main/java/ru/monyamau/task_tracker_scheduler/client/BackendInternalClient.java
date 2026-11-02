@@ -4,6 +4,7 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import ru.monyamau.task_tracker_scheduler.config.InternalFeignConfig;
 import ru.monyamau.task_tracker_scheduler.dto.backend.FullTaskDto;
 
 import java.time.OffsetDateTime;
@@ -11,7 +12,8 @@ import java.util.List;
 
 @FeignClient(
         name = "backendInternalClient",
-        url = "${backend-service.url}"
+        url = "${backend-service.url}",
+        configuration = InternalFeignConfig.class
 )
 public interface BackendInternalClient {
     @GetMapping("/internal/period-tasks")
