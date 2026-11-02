@@ -1,12 +1,16 @@
 package ru.monyamau.task_tracker_scheduler.service;
 
 import feign.FeignException;
+import feign.RetryableException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.monyamau.task_tracker_scheduler.client.BackendInternalClient;
 import ru.monyamau.task_tracker_scheduler.dto.backend.FullTaskDto;
 import ru.monyamau.task_tracker_scheduler.dto.summarization.PersonalTaskCollectionDto;
 import ru.monyamau.task_tracker_scheduler.dto.summarization.TaskDto;
+import ru.monyamau.task_tracker_scheduler.exception.CustomKafkaException;
 import ru.monyamau.task_tracker_scheduler.exception.InternalClientException;
+import ru.monyamau.task_tracker_scheduler.exception.UnavailableInternalRequestException;
 import ru.monyamau.task_tracker_scheduler.infrastructure.TaskReportRequestProducer;
 
 import java.time.Clock;
@@ -15,6 +19,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
+@Slf4j
 @Service
 public class DailyReportService {
     private final BackendInternalClient backendInternalClient;
@@ -30,19 +35,21 @@ public class DailyReportService {
         if (tasks.isEmpty()) return;
         List<String> ownerEmails = extractDistinctOwnerEmails(tasks);
         for (String ownerEmail : ownerEmails) {
-            List<TaskDto> ownerTasks = findTasksByOwnerEmail(tasks, ownerEmail);
-            reportRequestProducer.publishReportRequest(new PersonalTaskCollectionDto(ownerEmail, ownerTasks));
+            publishTaskWithRequestForReport(ownerEmail, tasks);
         }
     }
 
     private List<FullTaskDto> fetchTasksForPreviousDay() {
         LocalDate today = LocalDate.now(Clock.systemUTC());
-        OffsetDateTime toTime = OffsetDateTime.of(today.getYear(), today.getMonthValue(), today.getDayOfMonth(), 0, 0, 0, 0, ZoneOffset.UTC);
+        OffsetDateTime toTime = OffsetDateTime.of(
+                today.getYear(), today.getMonthValue(), today.getDayOfMonth(), 0, 0, 0, 0, ZoneOffset.UTC);
         OffsetDateTime fromTime = toTime.minusDays(1);
         try {
             return backendInternalClient.findPeriodTasksBy(fromTime, toTime);
+        } catch (RetryableException e) {
+            throw new UnavailableInternalRequestException("LLM недоступна для сетевых запросов", e);
         } catch (FeignException e) {
-            throw new InternalClientException("Возникла ошибка при попытке обращения к внутреннему backend API", e);
+            throw new InternalClientException("Возникла ошибка при попытке обращения к backend API", e);
         }
     }
 
@@ -53,7 +60,17 @@ public class DailyReportService {
                 .toList();
     }
 
-    private List<TaskDto> findTasksByOwnerEmail(List<FullTaskDto> taskDtoList, String ownerEmail) {
+    private void publishTaskWithRequestForReport(String email, List<FullTaskDto> tasks) {
+        List<TaskDto> ownerTasks = findAndConvertTasksByOwnerEmail(tasks, email);
+        try {
+            reportRequestProducer.publishReportRequest(new PersonalTaskCollectionDto(email, ownerTasks));
+            log.info("Успешно опубликована задача с запросом на генерацию отчёта для пользователя {}", email);
+        } catch (CustomKafkaException e) {
+            log.error("Не удалось опубликовать задачу на генерацию отчёта для пользователя {}", email, e);
+        }
+    }
+
+    private List<TaskDto> findAndConvertTasksByOwnerEmail(List<FullTaskDto> taskDtoList, String ownerEmail) {
         return taskDtoList.stream()
                 .filter(taskDto -> taskDto.ownerEmail().equals(ownerEmail))
                 .map(this::convert)
