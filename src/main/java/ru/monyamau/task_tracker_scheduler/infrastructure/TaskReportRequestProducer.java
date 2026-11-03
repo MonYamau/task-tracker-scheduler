@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import ru.monyamau.task_tracker_scheduler.dto.summarization.PersonalTaskCollectionDto;
-import ru.monyamau.task_tracker_scheduler.exception.CustomKafkaException;
+import ru.monyamau.task_tracker_scheduler.exception.NonRetryableKafkaException;
 
 import java.util.concurrent.ExecutionException;
 
@@ -23,12 +23,12 @@ public class TaskReportRequestProducer {
             kafkaTemplate.send(topic, personalTaskCollectionDto).get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new CustomKafkaException("Попытка публикации задачи о запросе отчёта в Kafka была прервана", e);
+            throw new NonRetryableKafkaException("Попытка публикации задачи о запросе отчёта в Kafka была прервана", e);
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            throw new CustomKafkaException("Не удалось опубликовать задачу о запросе отчёта в Kafka", cause);
+            throw new NonRetryableKafkaException("Не удалось опубликовать задачу о запросе отчёта в Kafka", cause);
         } catch (Exception e) {
-            throw new CustomKafkaException("Ошибка при попытке опубликовать задачу о запросе отчёта в Kafka", e);
+            throw new NonRetryableKafkaException("Ошибка при попытке опубликовать задачу о запросе отчёта в Kafka", e);
         }
     }
 }

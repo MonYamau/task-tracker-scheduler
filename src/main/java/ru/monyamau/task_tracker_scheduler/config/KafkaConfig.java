@@ -11,6 +11,7 @@ import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.util.backoff.FixedBackOff;
 import ru.monyamau.task_tracker_scheduler.dto.summarization.PersonalTaskReportDto;
+import ru.monyamau.task_tracker_scheduler.exception.NonRetryableKafkaException;
 
 @Configuration
 public class KafkaConfig {
@@ -47,6 +48,7 @@ public class KafkaConfig {
         recoverer.setLogRecoveryRecord(true);
         recoverer.setFailIfSendResultIsError(true);
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(3000, 2));
+        errorHandler.addNotRetryableExceptions(NonRetryableKafkaException.class);
         return errorHandler;
     }
 }

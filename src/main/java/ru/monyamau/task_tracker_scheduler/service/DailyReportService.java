@@ -8,8 +8,8 @@ import ru.monyamau.task_tracker_scheduler.client.BackendInternalClient;
 import ru.monyamau.task_tracker_scheduler.dto.backend.FullTaskDto;
 import ru.monyamau.task_tracker_scheduler.dto.summarization.PersonalTaskCollectionDto;
 import ru.monyamau.task_tracker_scheduler.dto.summarization.TaskDto;
-import ru.monyamau.task_tracker_scheduler.exception.CustomKafkaException;
 import ru.monyamau.task_tracker_scheduler.exception.InternalClientException;
+import ru.monyamau.task_tracker_scheduler.exception.NonRetryableKafkaException;
 import ru.monyamau.task_tracker_scheduler.exception.UnavailableInternalRequestException;
 import ru.monyamau.task_tracker_scheduler.infrastructure.TaskReportRequestProducer;
 
@@ -65,7 +65,7 @@ public class DailyReportService {
         try {
             reportRequestProducer.publishReportRequest(new PersonalTaskCollectionDto(email, ownerTasks));
             log.info("Успешно опубликована задача с запросом на генерацию отчёта для пользователя {}", email);
-        } catch (CustomKafkaException e) {
+        } catch (NonRetryableKafkaException e) {
             log.error("Не удалось опубликовать задачу на генерацию отчёта для пользователя {}", email, e);
         }
     }

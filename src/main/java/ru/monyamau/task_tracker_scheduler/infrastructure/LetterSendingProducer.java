@@ -1,10 +1,12 @@
 package ru.monyamau.task_tracker_scheduler.infrastructure;
 
+import org.apache.kafka.common.errors.RetriableException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import ru.monyamau.task_tracker_scheduler.dto.mailing.PersonalReportLetterDto;
-import ru.monyamau.task_tracker_scheduler.exception.CustomKafkaException;
+import ru.monyamau.task_tracker_scheduler.exception.NonRetryableKafkaException;
+import ru.monyamau.task_tracker_scheduler.exception.RetryableKafkaException;
 
 import java.util.concurrent.ExecutionException;
 
@@ -23,12 +25,23 @@ public class LetterSendingProducer {
             kafkaTemplate.send(topic, personalReportLetterDto).get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new CustomKafkaException("Попытка публикации задачи для отправки письма в Kafka была прервана", e);
+            throw new NonRetryableKafkaException("Попытка публикации задачи для отправки письма в Kafka была прервана", e);
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            throw new CustomKafkaException("Не удалось опубликовать задачу для отправки письма в Kafka", cause);
+            throw determineCause(cause);
         } catch (Exception e) {
-            throw new CustomKafkaException("Ошибка при попытке опубликовать задачу для отправки письма в Kafka", e);
+            throw determineCause(e);
         }
+    }
+
+    private RuntimeException determineCause(Throwable exception) {
+        Throwable duplicateException = exception;
+        while (duplicateException != null) {
+            if (duplicateException instanceof RetriableException) {
+                return new RetryableKafkaException("Допустимо для повторного вызова", exception);
+            }
+            duplicateException = duplicateException.getCause();
+        }
+        return new NonRetryableKafkaException("Ошибка при попытке опубликовать задачу для отправки письма в Kafka", exception);
     }
 }
