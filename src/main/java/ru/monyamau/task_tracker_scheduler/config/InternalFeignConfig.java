@@ -13,7 +13,7 @@ public class InternalFeignConfig {
     private static final int BAD_GATEWAY_ERROR = 502;
     private static final int SERVICE_UNAVAILABLE_ERROR = 503;
     private static final int GATEWAY_TIMEOUT_ERROR = 504;
-    
+
     private static final long PERIOD_MS = 1000L;
     private static final long MAX_PERIOD_MS = 10000L;
     private static final int NUM_OF_ATTEMPTS = 3;

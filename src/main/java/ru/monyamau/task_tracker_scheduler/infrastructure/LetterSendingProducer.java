@@ -7,8 +7,6 @@ import ru.monyamau.task_tracker_scheduler.dto.mailing.PersonalReportLetterDto;
 import ru.monyamau.task_tracker_scheduler.exception.CustomKafkaException;
 
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 @Component
 public class LetterSendingProducer {
@@ -22,12 +20,10 @@ public class LetterSendingProducer {
 
     public void publishLetterTask(PersonalReportLetterDto personalReportLetterDto) {
         try {
-            kafkaTemplate.send(topic, personalReportLetterDto).get(5, TimeUnit.SECONDS);
+            kafkaTemplate.send(topic, personalReportLetterDto).get();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new CustomKafkaException("Попытка публикации задачи для отправки письма в Kafka была прервана", e);
-        } catch (TimeoutException e) {
-            throw new CustomKafkaException("Не удалось получить подтверждение от Kafka о получении задачи для отправки письма", e);
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             throw new CustomKafkaException("Не удалось опубликовать задачу для отправки письма в Kafka", cause);
