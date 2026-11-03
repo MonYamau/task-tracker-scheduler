@@ -24,7 +24,7 @@ public class KafkaConfig {
     }
 
     @Bean
-    public NewTopic createReportResponseTopic() {
+    public NewTopic createReportRequestTopic() {
         return TopicBuilder.name(reportRequestTopic)
                 .replicas(1)
                 .partitions(1)
@@ -47,7 +47,6 @@ public class KafkaConfig {
         recoverer.setLogRecoveryRecord(true);
         recoverer.setFailIfSendResultIsError(true);
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(3000, 2));
-        errorHandler.addRetryableExceptions();
         return errorHandler;
     }
 }
