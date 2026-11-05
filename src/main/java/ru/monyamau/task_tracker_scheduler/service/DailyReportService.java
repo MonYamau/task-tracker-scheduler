@@ -37,7 +37,7 @@ public class DailyReportService {
             return;
         }
         List<String> ownerEmails = extractDistinctOwnerEmails(tasks);
-        log.info("Успешно получены задачи для {} пользователей", ownerEmails.size());
+        log.info("Успешно получены задачи для {} пользователей в количестве {} штук", ownerEmails.size(), tasks.size());
         for (String ownerEmail : ownerEmails) {
             publishTaskWithRequestForReport(ownerEmail, tasks);
         }
@@ -47,7 +47,7 @@ public class DailyReportService {
         LocalDate today = LocalDate.now(Clock.systemUTC());
         OffsetDateTime toTime = OffsetDateTime.of(
                 today.getYear(), today.getMonthValue(), today.getDayOfMonth(), 0, 0, 0, 0, ZoneOffset.UTC);
-        OffsetDateTime fromTime = toTime.minusDays(1);
+        OffsetDateTime fromTime = toTime.minusDays(10);
         try {
             return backendInternalClient.findPeriodTasksBy(fromTime, toTime);
         } catch (RetryableException e) {
