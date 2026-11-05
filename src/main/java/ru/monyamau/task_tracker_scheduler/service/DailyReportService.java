@@ -32,8 +32,12 @@ public class DailyReportService {
 
     public void sendReportRequests() {
         List<FullTaskDto> tasks = fetchTasksForPreviousDay();
-        if (tasks.isEmpty()) return;
+        if (tasks.isEmpty()) {
+            log.info("Не удалось найти задачи за предыдущий день");
+            return;
+        }
         List<String> ownerEmails = extractDistinctOwnerEmails(tasks);
+        log.info("Успешно получены задачи для {} пользователей", ownerEmails.size());
         for (String ownerEmail : ownerEmails) {
             publishTaskWithRequestForReport(ownerEmail, tasks);
         }
