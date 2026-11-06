@@ -47,7 +47,7 @@ public class DailyReportService {
         LocalDate today = LocalDate.now(Clock.systemUTC());
         OffsetDateTime toTime = OffsetDateTime.of(
                 today.getYear(), today.getMonthValue(), today.getDayOfMonth(), 0, 0, 0, 0, ZoneOffset.UTC);
-        OffsetDateTime fromTime = toTime.minusDays(10);
+        OffsetDateTime fromTime = toTime.minusDays(1);
         try {
             return backendInternalClient.findPeriodTasksBy(fromTime, toTime);
         } catch (RetryableException e) {
