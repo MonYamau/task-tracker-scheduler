@@ -2,7 +2,6 @@ package ru.monyamau.task_tracker_scheduler.service;
 
 import org.springframework.stereotype.Service;
 import ru.monyamau.task_tracker_scheduler.dto.mailing.PersonalReportLetterDto;
-import ru.monyamau.task_tracker_scheduler.dto.summarization.PersonalTaskReportDto;
 import ru.monyamau.task_tracker_scheduler.infrastructure.LetterSendingProducer;
 import ru.monyamau.task_tracker_scheduler.util.LetterCreator;
 
@@ -14,9 +13,9 @@ public class ReportMailingService {
         this.letterSendingProducer = letterSendingProducer;
     }
 
-    public void sendReportToUser(PersonalTaskReportDto reportDto) {
+    public void sendReportToUser(String email, String personalReport) {
         PersonalReportLetterDto reportLetter = LetterCreator
-                .createReportLetter(reportDto.userEmail(), reportDto.personalReport());
+                .createReportLetter(email, personalReport);
         letterSendingProducer.publishLetterTask(reportLetter);
     }
 }
