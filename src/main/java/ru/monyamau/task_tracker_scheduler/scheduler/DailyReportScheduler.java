@@ -17,7 +17,7 @@ public class DailyReportScheduler {
     }
 
     @Scheduled(
-            cron = "${scheduler.cron_value}",
+            cron = "${scheduler.cron-value}",
             zone = "UTC")
     public void publishDailyReports() {
         log.info("Запущен процесс публикации отчётов пользователей в {}", Instant.now());

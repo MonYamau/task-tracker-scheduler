@@ -3,6 +3,7 @@ package ru.monyamau.task_tracker_scheduler.service;
 import feign.FeignException;
 import feign.RetryableException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.monyamau.task_tracker_scheduler.client.BackendInternalClient;
 import ru.monyamau.task_tracker_scheduler.dto.backend.FullTaskDto;
@@ -28,13 +29,16 @@ public class DailyReportService {
     private final BackendInternalClient backendInternalClient;
     private final TaskReportRequestProducer reportRequestProducer;
     private final ReportMailingService reportMailingService;
+    private final int windowDaysAgo;
 
     public DailyReportService(BackendInternalClient backendInternalClient,
                               TaskReportRequestProducer reportRequestProducer,
-                              ReportMailingService reportMailingService) {
+                              ReportMailingService reportMailingService,
+                              @Value("${scheduler.window-days-ago-value}") int windowDaysAgo) {
         this.backendInternalClient = backendInternalClient;
         this.reportRequestProducer = reportRequestProducer;
         this.reportMailingService = reportMailingService;
+        this.windowDaysAgo = windowDaysAgo;
     }
 
     public void sendReportRequests() {
@@ -57,10 +61,8 @@ public class DailyReportService {
     }
 
     private List<FullTaskDto> fetchTasksForPreviousDay() {
-        LocalDate today = LocalDate.now(Clock.systemUTC());
-        OffsetDateTime toTime = OffsetDateTime.of(
-                today.getYear(), today.getMonthValue(), today.getDayOfMonth(), 0, 0, 0, 0, ZoneOffset.UTC);
-        OffsetDateTime fromTime = toTime.minusDays(10);
+        OffsetDateTime toTime = LocalDate.now(Clock.systemUTC()).atStartOfDay().atOffset(ZoneOffset.UTC);
+        OffsetDateTime fromTime = toTime.minusDays(windowDaysAgo);
         try {
             return backendInternalClient.findPeriodTasksBy(fromTime, toTime);
         } catch (RetryableException e) {
