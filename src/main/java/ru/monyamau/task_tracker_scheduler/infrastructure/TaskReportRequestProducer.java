@@ -1,5 +1,6 @@
 package ru.monyamau.task_tracker_scheduler.infrastructure;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -13,7 +14,9 @@ public class TaskReportRequestProducer {
     private final KafkaTemplate<String, PersonalTaskCollectionDto> kafkaTemplate;
     private final String topic;
 
-    public TaskReportRequestProducer(KafkaTemplate<String, PersonalTaskCollectionDto> kafkaTemplate, @Value("${kafka.topics.request}") String topic) {
+    public TaskReportRequestProducer(
+            @Qualifier("reportRequestKafkaTemplate") KafkaTemplate<String, PersonalTaskCollectionDto> kafkaTemplate,
+            @Value("${kafka.topics.request}") String topic) {
         this.kafkaTemplate = kafkaTemplate;
         this.topic = topic;
     }

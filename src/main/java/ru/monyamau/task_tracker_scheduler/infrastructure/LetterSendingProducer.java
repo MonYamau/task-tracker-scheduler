@@ -1,6 +1,7 @@
 package ru.monyamau.task_tracker_scheduler.infrastructure;
 
 import org.apache.kafka.common.errors.RetriableException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
@@ -15,7 +16,9 @@ public class LetterSendingProducer {
     private final KafkaTemplate<String, PersonalReportLetterDto> kafkaTemplate;
     private final String topic;
 
-    public LetterSendingProducer(KafkaTemplate<String, PersonalReportLetterDto> kafkaTemplate, @Value("${kafka.topics.mailing}") String topic) {
+    public LetterSendingProducer(
+            @Qualifier("letterSendingKafkaTemplate") KafkaTemplate<String, PersonalReportLetterDto> kafkaTemplate,
+            @Value("${kafka.topics.mailing}") String topic) {
         this.kafkaTemplate = kafkaTemplate;
         this.topic = topic;
     }
