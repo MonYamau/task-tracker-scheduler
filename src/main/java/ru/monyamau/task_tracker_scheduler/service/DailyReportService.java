@@ -82,7 +82,12 @@ public class DailyReportService {
     private Optional<PersonalTaskReportDto> requestPersonalReport(String email, List<FullTaskDto> tasks) {
         List<TaskDto> ownerTasks = findAndConvertTasksByOwnerEmail(tasks, email);
         try {
-            return Optional.ofNullable(reportRequestProducer.requestReport(new PersonalTaskCollectionDto(ownerTasks)));
+            PersonalTaskReportDto reportDto = reportRequestProducer.requestReport(new PersonalTaskCollectionDto(ownerTasks));
+            if (reportDto.personalReport() == null || reportDto.personalReport().isBlank() || reportDto.errorStatus()) {
+                log.error("Не удалось сгенерировать отчёт для {} из-за ошибки в summarization сервисе", email);
+                return Optional.empty();
+            }
+            return Optional.of(reportDto);
         } catch (RetryableKafkaException e) {
             log.error("Возникла временная ошибка при попытке получить персональный отчёт для пользователя {}", email, e);
         } catch (NonRetryableKafkaException e) {
