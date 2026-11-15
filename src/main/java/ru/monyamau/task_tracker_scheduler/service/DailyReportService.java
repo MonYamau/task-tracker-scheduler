@@ -20,12 +20,15 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
 @Slf4j
 @Service
 public class DailyReportService {
+    private static final int MAX_TASKS_COUNT = 30;
+
     private final BackendInternalClient backendInternalClient;
     private final TaskReportRequestProducer reportRequestProducer;
     private final ReportMailingService reportMailingService;
@@ -81,8 +84,14 @@ public class DailyReportService {
 
     private Optional<PersonalTaskReportDto> requestPersonalReport(String email, List<FullTaskDto> tasks) {
         List<TaskDto> ownerTasks = findAndConvertTasksByOwnerEmail(tasks, email);
+        int unaccountedTasksCount = 0;
+        if (ownerTasks.size() > MAX_TASKS_COUNT) {
+            unaccountedTasksCount = ownerTasks.size() - MAX_TASKS_COUNT;
+            ownerTasks = limitTasks(ownerTasks);
+        }
         try {
-            PersonalTaskReportDto reportDto = reportRequestProducer.requestReport(new PersonalTaskCollectionDto(ownerTasks));
+            PersonalTaskReportDto reportDto = reportRequestProducer
+                    .requestReport(new PersonalTaskCollectionDto(ownerTasks, unaccountedTasksCount));
             if (reportDto.personalReport() == null || reportDto.personalReport().isBlank() || reportDto.errorStatus()) {
                 log.error("Не удалось сгенерировать отчёт для {} из-за ошибки в summarization сервисе", email);
                 return Optional.empty();
@@ -94,6 +103,13 @@ public class DailyReportService {
             log.error("Не удалось получить персональный отчёт из-за ошибки для пользователя {}", email, e);
         }
         return Optional.empty();
+    }
+
+    private List<TaskDto> limitTasks(List<TaskDto> tasks) {
+        return tasks.stream()
+                .sorted(Comparator.comparing(TaskDto::isReady).reversed())
+                .limit(MAX_TASKS_COUNT)
+                .toList();
     }
 
     private void mailingPersonalReport(String email, PersonalTaskReportDto personalTaskReportDto) {
