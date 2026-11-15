@@ -22,7 +22,9 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -50,17 +52,18 @@ public class DailyReportService {
             log.info("Не удалось найти задачи за предыдущий день");
             return;
         }
-        List<String> ownerEmails = extractDistinctOwnerEmails(tasks);
-        log.info("Успешно получены задачи для {} пользователей в количестве {} штук", ownerEmails.size(), tasks.size());
-        for (String ownerEmail : ownerEmails) {
-            Optional<PersonalTaskReportDto> requestPersonalReport = requestPersonalReport(ownerEmail, tasks);
+        Map<String, List<FullTaskDto>> tasksByOwner = tasks.stream()
+                .collect(Collectors.groupingBy(FullTaskDto::ownerEmail));
+        log.info("Успешно получены задачи для {} пользователей в количестве {} штук", tasksByOwner.size(), tasks.size());
+        tasksByOwner.forEach((ownerEmail, ownerTasks) -> {
+            Optional<PersonalTaskReportDto> requestPersonalReport = requestPersonalReport(ownerEmail, ownerTasks);
             if (requestPersonalReport.isEmpty()) {
-                continue;
+                return;
             }
             log.info("Успешно получен персональный отчёт для пользователя {}", ownerEmail);
             mailingPersonalReport(ownerEmail, requestPersonalReport.get());
             log.info("Успешно произведена рассылка персонального отчёта для пользователя {}", ownerEmail);
-        }
+        });
     }
 
     private List<FullTaskDto> fetchTasksForPreviousDay() {
@@ -75,15 +78,10 @@ public class DailyReportService {
         }
     }
 
-    private List<String> extractDistinctOwnerEmails(List<FullTaskDto> taskDtoList) {
-        return taskDtoList.stream()
-                .map(FullTaskDto::ownerEmail)
-                .distinct()
-                .toList();
-    }
-
     private Optional<PersonalTaskReportDto> requestPersonalReport(String email, List<FullTaskDto> tasks) {
-        List<TaskDto> ownerTasks = findAndConvertTasksByOwnerEmail(tasks, email);
+        List<TaskDto> ownerTasks = tasks.stream()
+                .map(this::convert)
+                .toList();
         int unaccountedTasksCount = 0;
         if (ownerTasks.size() > MAX_TASKS_COUNT) {
             unaccountedTasksCount = ownerTasks.size() - MAX_TASKS_COUNT;
@@ -120,13 +118,6 @@ public class DailyReportService {
         } catch (NonRetryableKafkaException e) {
             log.error("Не удалось опубликовать задачу на отправку письма с отчётом для пользователя {}", email, e);
         }
-    }
-
-    private List<TaskDto> findAndConvertTasksByOwnerEmail(List<FullTaskDto> taskDtoList, String ownerEmail) {
-        return taskDtoList.stream()
-                .filter(taskDto -> taskDto.ownerEmail().equals(ownerEmail))
-                .map(this::convert)
-                .toList();
     }
 
     private TaskDto convert(FullTaskDto fullTaskDto) {
